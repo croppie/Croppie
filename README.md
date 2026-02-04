@@ -4,3 +4,4 @@ For some stupid reason, they all SUCK or dont have very good features, or just d
 
 I do plan in the future to buy a domain for croppie, but for now, it is a static page on github.
 Thanks for stopping by and make sure to star the projects repo <3 <br>
+https://croppie.github.io/Croppie/
