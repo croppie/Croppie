@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Croppie test</title>
+    <title>Croppie</title>
     <link rel="icon" type="image/png" href="https://i.imgur.com/a8eGMXu.png">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -758,6 +758,58 @@
 
         .toggle-handles-btn:hover {
             background: var(--border-primary);
+        }
+
+        .controller-divider {
+            height: 1px;
+            background: var(--border-secondary);
+            margin: 10px 0;
+        }
+
+        .edge-controls {
+            margin-bottom: 10px;
+        }
+
+        .edge-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 6px;
+        }
+
+        .edge-row:last-child {
+            margin-bottom: 0;
+        }
+
+        .edge-label {
+            font-size: 10px;
+            color: var(--text-muted);
+            width: 45px;
+        }
+
+        .edge-btns {
+            display: flex;
+            gap: 4px;
+        }
+
+        .edge-btn {
+            width: 24px;
+            height: 24px;
+            border: none;
+            border-radius: 4px;
+            background: var(--border-primary);
+            color: var(--text-muted);
+            font-size: 12px;
+            cursor: pointer;
+            transition: 0.1s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .edge-btn:hover {
+            background: var(--border-secondary);
+            color: var(--text-primary);
             color: var(--text-secondary);
         }
 
@@ -1000,6 +1052,38 @@
                 <button class="ctrl-btn empty"></button>
                 <button class="ctrl-btn" id="btnDown">▼</button>
                 <button class="ctrl-btn empty"></button>
+            </div>
+            <div class="controller-divider"></div>
+            <div class="controller-title">Resize edges</div>
+            <div class="edge-controls">
+                <div class="edge-row">
+                    <span class="edge-label">Top</span>
+                    <div class="edge-btns">
+                        <button class="edge-btn" id="edgeTopOut" title="Move top edge up (expand)">−</button>
+                        <button class="edge-btn" id="edgeTopIn" title="Move top edge down (shrink)">+</button>
+                    </div>
+                </div>
+                <div class="edge-row">
+                    <span class="edge-label">Bottom</span>
+                    <div class="edge-btns">
+                        <button class="edge-btn" id="edgeBottomIn" title="Move bottom edge up (shrink)">−</button>
+                        <button class="edge-btn" id="edgeBottomOut" title="Move bottom edge down (expand)">+</button>
+                    </div>
+                </div>
+                <div class="edge-row">
+                    <span class="edge-label">Left</span>
+                    <div class="edge-btns">
+                        <button class="edge-btn" id="edgeLeftOut" title="Move left edge left (expand)">−</button>
+                        <button class="edge-btn" id="edgeLeftIn" title="Move left edge right (shrink)">+</button>
+                    </div>
+                </div>
+                <div class="edge-row">
+                    <span class="edge-label">Right</span>
+                    <div class="edge-btns">
+                        <button class="edge-btn" id="edgeRightIn" title="Move right edge left (shrink)">−</button>
+                        <button class="edge-btn" id="edgeRightOut" title="Move right edge right (expand)">+</button>
+                    </div>
+                </div>
             </div>
             <button class="toggle-handles-btn" id="toggleHandlesBtn">Hide handles</button>
         </div>
@@ -1624,6 +1708,50 @@
         document.getElementById('btnLeft').addEventListener('click', () => moveCrop(-moveStep, 0));
         document.getElementById('btnRight').addEventListener('click', () => moveCrop(moveStep, 0));
         document.getElementById('btnCenter').addEventListener('click', () => moveCrop(0, 0));
+
+        function adjustEdge(edge, amount) {
+            if (!cropOverlay.classList.contains('active')) return;
+            
+            const minSize = 20;
+            
+            switch (edge) {
+                case 'top':
+                    if (cropRect.height - amount >= minSize && cropRect.y + amount >= 0) {
+                        cropRect.y += amount;
+                        cropRect.height -= amount;
+                    }
+                    break;
+                case 'bottom':
+                    if (cropRect.height + amount >= minSize && cropRect.y + cropRect.height + amount <= imageCanvas.height) {
+                        cropRect.height += amount;
+                    }
+                    break;
+                case 'left':
+                    if (cropRect.width - amount >= minSize && cropRect.x + amount >= 0) {
+                        cropRect.x += amount;
+                        cropRect.width -= amount;
+                    }
+                    break;
+                case 'right':
+                    if (cropRect.width + amount >= minSize && cropRect.x + cropRect.width + amount <= imageCanvas.width) {
+                        cropRect.width += amount;
+                    }
+                    break;
+            }
+            
+            constrainCrop();
+            updateCropOverlay();
+            saveState();
+        }
+
+        document.getElementById('edgeTopOut').addEventListener('click', () => adjustEdge('top', -moveStep));
+        document.getElementById('edgeTopIn').addEventListener('click', () => adjustEdge('top', moveStep));
+        document.getElementById('edgeBottomOut').addEventListener('click', () => adjustEdge('bottom', moveStep));
+        document.getElementById('edgeBottomIn').addEventListener('click', () => adjustEdge('bottom', -moveStep));
+        document.getElementById('edgeLeftOut').addEventListener('click', () => adjustEdge('left', -moveStep));
+        document.getElementById('edgeLeftIn').addEventListener('click', () => adjustEdge('left', moveStep));
+        document.getElementById('edgeRightOut').addEventListener('click', () => adjustEdge('right', moveStep));
+        document.getElementById('edgeRightIn').addEventListener('click', () => adjustEdge('right', -moveStep));
 
         let showHandles = true;
         const toggleHandlesBtn = document.getElementById('toggleHandlesBtn');
