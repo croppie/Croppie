@@ -473,13 +473,13 @@
             display: flex;
             min-width: 100%;
             min-height: 100%;
-            padding: 24px;
+            padding: 50vh 50vw;
         }
 
         .canvas-wrapper {
             position: relative;
             display: inline-block;
-            transform-origin: 0 0;
+            transform-origin: center center;
             flex-shrink: 0;
             margin: auto;
             background-image: 
@@ -1379,7 +1379,22 @@
             zoomLevel = 1;
             updateZoom();
             
+            setTimeout(() => {
+                centerScrollOnImage();
+            }, 50);
+            
             resetCrop();
+        }
+        
+        function centerScrollOnImage() {
+            const containerRect = canvasContainer.getBoundingClientRect();
+            const wrapperRect = canvasWrapper.getBoundingClientRect();
+            
+            const wrapperCenterX = wrapperRect.left - containerRect.left + canvasContainer.scrollLeft + wrapperRect.width / 2;
+            const wrapperCenterY = wrapperRect.top - containerRect.top + canvasContainer.scrollTop + wrapperRect.height / 2;
+            
+            canvasContainer.scrollLeft = wrapperCenterX - canvasContainer.clientWidth / 2;
+            canvasContainer.scrollTop = wrapperCenterY - canvasContainer.clientHeight / 2;
         }
 
         function resetCrop() {
@@ -1952,21 +1967,26 @@
             const thumbHeight = minimapCanvas.height;
             const minimapScale = thumbWidth / imageCanvas.width;
             
-            const canvasPointX = clickX / minimapScale;
-            const canvasPointY = clickY / minimapScale;
+            const canvasX = clickX / minimapScale;
+            const canvasY = clickY / minimapScale;
             
-            const scaledX = canvasPointX * zoomLevel;
-            const scaledY = canvasPointY * zoomLevel;
+            const scaledX = canvasX * zoomLevel;
+            const scaledY = canvasY * zoomLevel;
             
-            const canvasInner = canvasWrapper.parentElement;
-            const wrapperOffsetLeft = canvasWrapper.offsetLeft;
-            const wrapperOffsetTop = canvasWrapper.offsetTop;
+            const containerRect = canvasContainer.getBoundingClientRect();
+            const wrapperRect = canvasWrapper.getBoundingClientRect();
             
-            const targetScrollX = wrapperOffsetLeft + scaledX - canvasContainer.clientWidth / 2;
-            const targetScrollY = wrapperOffsetTop + scaledY - canvasContainer.clientHeight / 2;
+            const wrapperContentX = wrapperRect.left - containerRect.left + canvasContainer.scrollLeft;
+            const wrapperContentY = wrapperRect.top - containerRect.top + canvasContainer.scrollTop;
             
-            canvasContainer.scrollLeft = Math.max(0, targetScrollX);
-            canvasContainer.scrollTop = Math.max(0, targetScrollY);
+            const targetScrollX = wrapperContentX + scaledX - canvasContainer.clientWidth / 2;
+            const targetScrollY = wrapperContentY + scaledY - canvasContainer.clientHeight / 2;
+            
+            const maxScrollX = canvasContainer.scrollWidth - canvasContainer.clientWidth;
+            const maxScrollY = canvasContainer.scrollHeight - canvasContainer.clientHeight;
+            
+            canvasContainer.scrollLeft = Math.max(0, Math.min(targetScrollX, maxScrollX));
+            canvasContainer.scrollTop = Math.max(0, Math.min(targetScrollY, maxScrollY));
             
             updateMinimap();
         }
@@ -2009,8 +2029,7 @@
         document.getElementById('zoomReset').addEventListener('click', () => {
             zoomLevel = 1;
             updateZoom();
-            canvasContainer.scrollLeft = 0;
-            canvasContainer.scrollTop = 0;
+            setTimeout(() => centerScrollOnImage(), 0);
         });
 
         canvasContainer.addEventListener('wheel', (e) => {
