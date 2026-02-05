@@ -810,7 +810,29 @@
         .edge-btn:hover {
             background: var(--border-secondary);
             color: var(--text-primary);
-            color: var(--text-secondary);
+        }
+
+        .controller-actions {
+            display: flex;
+            gap: 6px;
+        }
+
+        .mini-download-btn {
+            width: 32px;
+            padding: 6px;
+            border: 1px solid var(--accent-green);
+            border-radius: 4px;
+            background: var(--accent-green);
+            color: #fff;
+            font-size: 11px;
+            cursor: pointer;
+            font-family: inherit;
+            flex-shrink: 0;
+        }
+
+        .mini-download-btn:hover {
+            background: var(--accent-green-hover);
+            border-color: var(--accent-green-hover);
         }
 
         .preview-section {
@@ -1085,7 +1107,10 @@
                     </div>
                 </div>
             </div>
-            <button class="toggle-handles-btn" id="toggleHandlesBtn">Hide handles</button>
+            <div class="controller-actions">
+                <button class="toggle-handles-btn" id="toggleHandlesBtn">Hide handles</button>
+                <button class="mini-download-btn" id="miniDownloadBtn" title="Download crop">⬇</button>
+            </div>
         </div>
     </div>
 
@@ -1752,6 +1777,8 @@
         document.getElementById('edgeLeftIn').addEventListener('click', () => adjustEdge('left', moveStep));
         document.getElementById('edgeRightOut').addEventListener('click', () => adjustEdge('right', moveStep));
         document.getElementById('edgeRightIn').addEventListener('click', () => adjustEdge('right', -moveStep));
+
+        document.getElementById('miniDownloadBtn').addEventListener('click', downloadImage);
 
         let showHandles = true;
         const toggleHandlesBtn = document.getElementById('toggleHandlesBtn');
