@@ -186,8 +186,7 @@
         }
 
         .container {
-            max-width: 1400px;
-            margin: 0 auto;
+            margin: 0;
             padding: 24px;
         }
 
@@ -886,14 +885,32 @@
         .preview-section {
             display: none;
             margin-top: 16px;
+            margin-left: 236px;
             background: var(--bg-primary);
             border: 1px solid var(--border-primary);
             border-radius: 6px;
             overflow: hidden;
         }
 
-        .preview-section.active {
+        .preview-section.visible {
             display: block;
+        }
+
+        .preview-empty {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 200px;
+            color: var(--text-muted);
+            font-size: 14px;
+        }
+
+        .preview-section.has-result .preview-empty {
+            display: none;
+        }
+
+        .preview-section:not(.has-result) .preview-content {
+            display: none;
         }
 
         .preview-header {
@@ -1107,6 +1124,7 @@
 
         <div class="preview-section" id="previewSection">
             <div class="preview-header">Result</div>
+            <div class="preview-empty">Draw a area to crop to see the results here</div>
             <div class="preview-content">
                 <canvas id="previewCanvas"></canvas>
             </div>
@@ -1326,7 +1344,8 @@
                     workspace.classList.add('active');
                     document.getElementById('sidebar').classList.add('active');
                     uploadSection.classList.add('hidden');
-                    previewSection.classList.remove('active');
+                    previewSection.classList.add('visible');
+                    previewSection.classList.remove('has-result');
                     downloadBtn.style.display = 'none';
                 };
                 originalImage.src = event.target.result;
@@ -1507,7 +1526,7 @@
 
         function updateResultPreview() {
             if (!originalImage || cropRect.width < 10 || cropRect.height < 10) {
-                previewSection.classList.remove('active');
+                previewSection.classList.remove('has-result');
                 downloadBtn.style.display = 'none';
                 return;
             }
@@ -1526,7 +1545,7 @@
                 0, 0, actualWidth, actualHeight
             );
             
-            previewSection.classList.add('active');
+            previewSection.classList.add('has-result');
             downloadBtn.style.display = 'inline-block';
         }
 
@@ -1571,6 +1590,7 @@
 
         function startResize(e) {
             e.stopPropagation();
+            e.preventDefault();
             resizing = true;
             currentHandle = e.target.dataset.handle;
             canvasRect = imageCanvas.getBoundingClientRect();
@@ -1590,9 +1610,10 @@
 
         function resize(e) {
             if (!resizing) return;
+            e.preventDefault();
             
-            const dx = e.clientX - startX;
-            const dy = e.clientY - startY;
+            const dx = (e.clientX - startX) / zoomLevel;
+            const dy = (e.clientY - startY) / zoomLevel;
             
             const minSize = 20;
             
@@ -1683,6 +1704,7 @@
         });
 
         function startMove(e) {
+            e.preventDefault();
             moving = true;
             startX = e.clientX;
             startY = e.clientY;
@@ -1700,9 +1722,10 @@
 
         function move(e) {
             if (!moving) return;
+            e.preventDefault();
             
-            const dx = e.clientX - startX;
-            const dy = e.clientY - startY;
+            const dx = (e.clientX - startX) / zoomLevel;
+            const dy = (e.clientY - startY) / zoomLevel;
             
             cropRect.x += dx;
             cropRect.y += dy;
