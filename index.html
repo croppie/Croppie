@@ -240,13 +240,22 @@
         }
 
         .main-layout {
-            display: grid;
-            grid-template-columns: 220px 1fr;
-            gap: 16px;
+            display: block;
+            margin-left: 236px;
         }
 
         .sidebar {
             display: none;
+            position: fixed;
+            left: 0;
+            top: 57px;
+            width: 220px;
+            height: calc(100vh - 57px);
+            padding: 16px;
+            overflow-y: auto;
+            background: var(--bg-primary);
+            border-right: 1px solid var(--border-primary);
+            z-index: 50;
         }
 
         .sidebar.active {
@@ -420,16 +429,48 @@
             background: var(--bg-secondary);
             scrollbar-width: none;
             -ms-overflow-style: none;
+            position: relative;
         }
 
         .canvas-container::-webkit-scrollbar {
             display: none;
         }
 
+        .minimap {
+            position: fixed;
+            top: 140px;
+            right: 24px;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-secondary);
+            border-radius: 4px;
+            padding: 4px;
+            z-index: 100;
+            cursor: pointer;
+            display: none;
+        }
+
+        .minimap-inner {
+            position: relative;
+            width: 150px;
+            height: 120px;
+            border: 1px solid var(--border-primary);
+        }
+
+        .minimap-viewport {
+            position: absolute;
+            border: 2px solid #ff8c00;
+            background: transparent;
+            pointer-events: none;
+        }
+
+        .minimap-canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+
         .canvas-inner {
             display: flex;
-            justify-content: center;
-            align-items: center;
             min-width: 100%;
             min-height: 100%;
             padding: 24px;
@@ -440,6 +481,7 @@
             display: inline-block;
             transform-origin: 0 0;
             flex-shrink: 0;
+            margin: auto;
             background-image: 
                 linear-gradient(45deg, var(--transparency-dark) 25%, transparent 25%),
                 linear-gradient(-45deg, var(--transparency-dark) 25%, transparent 25%),
@@ -815,6 +857,12 @@
         .controller-actions {
             display: flex;
             gap: 6px;
+            flex-wrap: wrap;
+        }
+
+        .toggle-handles-btn {
+            flex: 1;
+            min-width: 60px;
         }
 
         .mini-download-btn {
@@ -1016,6 +1064,12 @@
                 </div>
 
                 <div class="canvas-container" id="canvasContainer">
+                    <div class="minimap" id="minimap">
+                        <div class="minimap-inner" id="minimapInner">
+                            <canvas class="minimap-canvas" id="minimapCanvas"></canvas>
+                            <div class="minimap-viewport" id="minimapViewport"></div>
+                        </div>
+                    </div>
                     <div class="canvas-inner" id="canvasInner">
                     <div class="canvas-wrapper" id="canvasWrapper">
                         <canvas id="imageCanvas"></canvas>
@@ -1109,6 +1163,7 @@
             </div>
             <div class="controller-actions">
                 <button class="toggle-handles-btn" id="toggleHandlesBtn">Hide handles</button>
+                <button class="toggle-handles-btn" id="togglePreviewBtn">Hide preview</button>
                 <button class="mini-download-btn" id="miniDownloadBtn" title="Download crop">⬇</button>
             </div>
         </div>
@@ -1135,6 +1190,11 @@
         const dropOverlay = document.getElementById('dropOverlay');
         const themeToggle = document.getElementById('themeToggle');
         const themeIcon = document.getElementById('themeIcon');
+        const minimap = document.getElementById('minimap');
+        const minimapInner = document.getElementById('minimapInner');
+        const minimapViewport = document.getElementById('minimapViewport');
+        const minimapCanvas = document.getElementById('minimapCanvas');
+        const minimapCtx = minimapCanvas.getContext('2d');
 
         let originalImage = null;
         let zoomLevel = 1;
@@ -1150,6 +1210,8 @@
         let history = [];
         let historyIndex = -1;
         const maxHistory = 50;
+        let showPreview = true;
+        let showHandles = true;
 
         const undoBtn = document.getElementById('undoBtn');
         const redoBtn = document.getElementById('redoBtn');
@@ -1303,7 +1365,11 @@
             const maxWidth = Math.min(window.innerWidth - 320, 1000);
             const maxHeight = window.innerHeight * 0.55;
             
-            scale = Math.min(maxWidth / originalImage.width, maxHeight / originalImage.height, 1);
+            scale = maxHeight / originalImage.height;
+            
+            if (originalImage.width * scale > maxWidth) {
+                scale = maxWidth / originalImage.width;
+            }
             
             imageCanvas.width = originalImage.width * scale;
             imageCanvas.height = originalImage.height * scale;
@@ -1450,7 +1516,7 @@
         }
 
         function updateLivePreview() {
-            if (!originalImage || cropRect.width < 10 || cropRect.height < 10) {
+            if (!originalImage || cropRect.width < 10 || cropRect.height < 10 || !showPreview) {
                 livePreviewBubble.style.display = 'none';
                 return;
             }
@@ -1780,16 +1846,28 @@
 
         document.getElementById('miniDownloadBtn').addEventListener('click', downloadImage);
 
-        let showHandles = true;
         const toggleHandlesBtn = document.getElementById('toggleHandlesBtn');
+        const togglePreviewBtn = document.getElementById('togglePreviewBtn');
+        
         toggleHandlesBtn.addEventListener('click', () => {
             showHandles = !showHandles;
             if (showHandles) {
                 cropOverlay.classList.remove('hide-handles');
-                toggleHandlesBtn.textContent = 'Hide Handles';
+                toggleHandlesBtn.textContent = 'Hide handles';
             } else {
                 cropOverlay.classList.add('hide-handles');
-                toggleHandlesBtn.textContent = 'Show Handles';
+                toggleHandlesBtn.textContent = 'Show handles';
+            }
+        });
+        
+        togglePreviewBtn.addEventListener('click', () => {
+            showPreview = !showPreview;
+            if (showPreview) {
+                livePreviewBubble.style.display = 'block';
+                togglePreviewBtn.textContent = 'Hide preview';
+            } else {
+                livePreviewBubble.style.display = 'none';
+                togglePreviewBtn.textContent = 'Show preview';
             }
         });
 
@@ -1800,7 +1878,119 @@
         function updateZoom() {
             canvasWrapper.style.transform = `scale(${zoomLevel})`;
             zoomValueEl.textContent = Math.round(zoomLevel * 100);
+            updateMinimap();
         }
+
+        function updateMinimap() {
+            if (!originalImage) {
+                minimap.style.display = 'none';
+                return;
+            }
+            minimap.style.display = 'block';
+            
+            const minimapMaxWidth = 150;
+            const minimapMaxHeight = 120;
+            const imgAspect = imageCanvas.width / imageCanvas.height;
+            
+            let thumbWidth, thumbHeight;
+            if (imgAspect > minimapMaxWidth / minimapMaxHeight) {
+                thumbWidth = minimapMaxWidth;
+                thumbHeight = minimapMaxWidth / imgAspect;
+            } else {
+                thumbHeight = minimapMaxHeight;
+                thumbWidth = minimapMaxHeight * imgAspect;
+            }
+            
+            minimapCanvas.width = thumbWidth;
+            minimapCanvas.height = thumbHeight;
+            minimapInner.style.width = thumbWidth + 'px';
+            minimapInner.style.height = thumbHeight + 'px';
+            minimapCtx.drawImage(imageCanvas, 0, 0, thumbWidth, thumbHeight);
+            
+            const wrapperRect = canvasWrapper.getBoundingClientRect();
+            const containerRect = canvasContainer.getBoundingClientRect();
+            
+            const visibleLeft = Math.max(containerRect.left, wrapperRect.left);
+            const visibleRight = Math.min(containerRect.right, wrapperRect.right);
+            const visibleTop = Math.max(containerRect.top, wrapperRect.top);
+            const visibleBottom = Math.min(containerRect.bottom, wrapperRect.bottom);
+            
+            const visibleWidth = Math.max(0, visibleRight - visibleLeft);
+            const visibleHeight = Math.max(0, visibleBottom - visibleTop);
+            
+            const visibleStartX = visibleLeft - wrapperRect.left;
+            const visibleStartY = visibleTop - wrapperRect.top;
+            
+            const canvasVisibleLeft = visibleStartX / zoomLevel;
+            const canvasVisibleTop = visibleStartY / zoomLevel;
+            const canvasVisibleWidth = visibleWidth / zoomLevel;
+            const canvasVisibleHeight = visibleHeight / zoomLevel;
+            
+            const minimapScale = thumbWidth / imageCanvas.width;
+            
+            const viewportX = canvasVisibleLeft * minimapScale;
+            const viewportY = canvasVisibleTop * minimapScale;
+            const viewportW = canvasVisibleWidth * minimapScale;
+            const viewportH = canvasVisibleHeight * minimapScale;
+            
+            minimapViewport.style.width = Math.max(viewportW, 2) + 'px';
+            minimapViewport.style.height = Math.max(viewportH, 2) + 'px';
+            minimapViewport.style.left = Math.max(0, Math.min(viewportX, thumbWidth - viewportW)) + 'px';
+            minimapViewport.style.top = Math.max(0, Math.min(viewportY, thumbHeight - viewportH)) + 'px';
+        }
+
+        let minimapDragging = false;
+        
+        function navigateFromMinimap(e) {
+            if (!originalImage) return;
+            
+            const rect = minimapInner.getBoundingClientRect();
+            const clickX = e.clientX - rect.left;
+            const clickY = e.clientY - rect.top;
+            
+            const thumbWidth = minimapCanvas.width;
+            const thumbHeight = minimapCanvas.height;
+            const minimapScale = thumbWidth / imageCanvas.width;
+            
+            const canvasPointX = clickX / minimapScale;
+            const canvasPointY = clickY / minimapScale;
+            
+            const scaledX = canvasPointX * zoomLevel;
+            const scaledY = canvasPointY * zoomLevel;
+            
+            const canvasInner = canvasWrapper.parentElement;
+            const wrapperOffsetLeft = canvasWrapper.offsetLeft;
+            const wrapperOffsetTop = canvasWrapper.offsetTop;
+            
+            const targetScrollX = wrapperOffsetLeft + scaledX - canvasContainer.clientWidth / 2;
+            const targetScrollY = wrapperOffsetTop + scaledY - canvasContainer.clientHeight / 2;
+            
+            canvasContainer.scrollLeft = Math.max(0, targetScrollX);
+            canvasContainer.scrollTop = Math.max(0, targetScrollY);
+            
+            updateMinimap();
+        }
+        
+        minimap.addEventListener('mousedown', (e) => {
+            minimapDragging = true;
+            navigateFromMinimap(e);
+            document.addEventListener('mousemove', minimapMouseMove);
+            document.addEventListener('mouseup', minimapMouseUp);
+        });
+        
+        function minimapMouseMove(e) {
+            if (minimapDragging) {
+                navigateFromMinimap(e);
+            }
+        }
+        
+        function minimapMouseUp() {
+            minimapDragging = false;
+            document.removeEventListener('mousemove', minimapMouseMove);
+            document.removeEventListener('mouseup', minimapMouseUp);
+        }
+
+        canvasContainer.addEventListener('scroll', updateMinimap);
 
         document.getElementById('zoomIn').addEventListener('click', () => {
             if (zoomLevel < 5) {
